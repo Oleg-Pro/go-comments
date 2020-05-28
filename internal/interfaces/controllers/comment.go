@@ -1,8 +1,8 @@
-package http
+package controllers
 
 import (
-	"cybersport-comments-go/internal/comment"
-	"cybersport-comments-go/internal/models"
+	"cybersport-comments-go/internal/domain/models"
+	"cybersport-comments-go/internal/usecases"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -11,18 +11,20 @@ type Comment struct {
 	Id       uint64  `json:"id"`
 	Comment  string  `json:"comment"`
 	ParentId *uint64 `json:"parent_id"`
-	//Type uint8
-	//ObjectId uint
-	//Status uint8
-	//UserId uint
 }
 
-type Handler struct {
-	useCase comment.UseCase
+type CommentController struct {
+	useCase *usecases.CommentUseCase
 }
 
-func NewHandler(useCase comment.UseCase) *Handler {
-	return &Handler{
+//func NewCommentController(useCase usecases.CommentUseCase) *CommentController {
+//	return &CommentController{
+//		useCase: useCase,
+//	}
+//}
+
+func NewCommentController(useCase *usecases.CommentUseCase) *CommentController {
+	return &CommentController{
 		useCase: useCase,
 	}
 }
@@ -33,7 +35,7 @@ type createInput struct {
 	ParentId *uint64 `json:"parent_id"`
 }
 
-func (h *Handler) Create(c *gin.Context) {
+func (controller *CommentController) Create(c *gin.Context) {
 	inp := new(createInput)
 	if err := c.BindJSON(inp); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -46,7 +48,7 @@ func (h *Handler) Create(c *gin.Context) {
 		ParentId: inp.ParentId,
 	}
 
-	err := h.useCase.AddComment(c.Request.Context(), comment)
+	err := controller.useCase.AddComment(c.Request.Context(), comment)
 
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -61,8 +63,8 @@ type getResponse struct {
 	Comments []*Comment `json:"comments"`
 }
 
-func (h *Handler) GetComments(c *gin.Context) {
-	comments, err := h.useCase.GetComments(c.Request.Context())
+func (controller *CommentController) GetComments(c *gin.Context) {
+	comments, err := controller.useCase.GetComments(c.Request.Context())
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -77,7 +79,7 @@ type deleteInput struct {
 	ID uint64 `json:"id" binding:"required"`
 }
 
-func (h *Handler) Delete(c *gin.Context) {
+func (controller *CommentController) Delete(c *gin.Context) {
 	inp := new(deleteInput)
 
 	if err := c.BindJSON(inp); err != nil {
@@ -85,13 +87,23 @@ func (h *Handler) Delete(c *gin.Context) {
 		return
 	}
 
-	err := h.useCase.DeleteComment(c.Request.Context(), inp.ID)
+	err := controller.useCase.DeleteComment(c.Request.Context(), inp.ID)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"result": "ok"})
+}
+
+func (controller *CommentController) RegisterHTTPEndpoints(router *gin.RouterGroup) {
+
+	bookmarks := router.Group("/comments")
+	{
+		bookmarks.POST("", controller.Create)
+		bookmarks.GET("", controller.GetComments)
+		bookmarks.DELETE("", controller.Delete)
+	}
 }
 
 func toComments(comments []*models.Comment) []*Comment {

@@ -2,7 +2,7 @@ package sql
 
 import (
 	"context"
-	"cybersport-comments-go/internal/models"
+	"cybersport-comments-go/internal/domain/models"
 	"fmt"
 	"github.com/jmoiron/sqlx"
 )

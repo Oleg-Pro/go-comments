@@ -2,12 +2,11 @@ package server
 
 import (
 	"context"
-	"cybersport-comments-go/internal/comment"
-	commenthttp "cybersport-comments-go/internal/comment/delivery/http"
-	commentsql "cybersport-comments-go/internal/comment/repository/sql"
-	commentusecase "cybersport-comments-go/internal/comment/usecase"
-	"cybersport-comments-go/internal/config"
-	"cybersport-comments-go/internal/dbconnection"
+	"cybersport-comments-go/internal/infrastructure/config"
+	"cybersport-comments-go/internal/infrastructure/dbconnection"
+	"cybersport-comments-go/internal/interfaces/controllers"
+	sqlrepostirories "cybersport-comments-go/internal/interfaces/repositories/sql"
+	"cybersport-comments-go/internal/usecases"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
@@ -18,7 +17,7 @@ import (
 
 type App struct {
 	httpServer     *http.Server
-	commentUseCase comment.UseCase
+	commentUseCase *usecases.CommentUseCase
 }
 
 func NewApp() *App {
@@ -29,30 +28,32 @@ func NewApp() *App {
 		log.Fatalln(err)
 	}
 
-	commentRepository := commentsql.NewCommentRepository(db)
-	commentUseCase := commentusecase.NewCommentUseCase(commentRepository)
+	commentRepository := sqlrepostirories.NewCommentRepository(db)
+	commentUseCase := usecases.NewCommentUseCase(commentRepository)
 
 	return &App{
 		commentUseCase: commentUseCase,
 	}
 }
 
-func (a *App) Run(port string) error {
+func (app *App) Run(port string) error {
 	//gin.SetMode(gin.ReleaseMode)
-	router := gin.New() //gin.Default()
+	router := gin.New()
 
 	router.Use(gin.Logger())
 	api := router.Group("/v1/api")
-	commenthttp.RegisterHTTPEndpoints(api, a.commentUseCase)
+
+	commentController := controllers.NewCommentController(app.commentUseCase)
+	commentController.RegisterHTTPEndpoints(api)
 
 	log.Println("PORT::::" + port)
-	a.httpServer = &http.Server{
+	app.httpServer = &http.Server{
 		Addr:    ":" + port,
 		Handler: router,
 	}
 
 	go func() {
-		if err := a.httpServer.ListenAndServe(); err != nil {
+		if err := app.httpServer.ListenAndServe(); err != nil {
 			log.Fatalf("Failed to listen and serve: %+v", err)
 		}
 	}()
@@ -65,5 +66,5 @@ func (a *App) Run(port string) error {
 	ctx, shutdown := context.WithTimeout(context.Background(), 5*time.Second)
 	defer shutdown()
 
-	return a.httpServer.Shutdown(ctx)
+	return app.httpServer.Shutdown(ctx)
 }

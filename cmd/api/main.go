@@ -1,8 +1,8 @@
 package main
 
 import (
-	"cybersport-comments-go/internal/config"
-	"cybersport-comments-go/internal/server"
+	"cybersport-comments-go/internal/infrastructure/config"
+	"cybersport-comments-go/internal/infrastructure/server"
 	"fmt"
 	"log"
 	"os"

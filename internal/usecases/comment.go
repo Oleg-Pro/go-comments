@@ -1,21 +1,28 @@
-package usecase
+package usecases
 
 import (
 	"context"
-	"cybersport-comments-go/internal/comment"
-	"cybersport-comments-go/internal/models"
+	"cybersport-comments-go/internal/domain/models"
+	"cybersport-comments-go/internal/domain/repositories"
 )
 
-type CommentUseCase struct {
-	commentRepository comment.Repository
+type CommentUseCaseHandler interface {
+	AddComment(ctx context.Context, comment *models.Comment) error
+	GetComments(ctx context.Context) ([]*models.Comment, error)
+	DeleteComment(ctx context.Context, id uint64) error
 }
 
-func NewCommentUseCase(commentRepository comment.Repository) *CommentUseCase {
+type CommentUseCase struct {
+	commentRepository repositories.CommentRepository
+}
+
+func NewCommentUseCase(commentRepository repositories.CommentRepository) *CommentUseCase {
 	return &CommentUseCase{
 		commentRepository: commentRepository,
 	}
 }
 
+//Implement UseCase interface
 func (commentUseCase CommentUseCase) AddComment(ctx context.Context, comment *models.Comment) error {
 	return commentUseCase.commentRepository.AddComment(ctx, comment)
 }
